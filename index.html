@@ -2,92 +2,40 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piano Pro Custom</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Piano Pro iPad Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-   <style>
-    body { 
-        background: #111; 
-        color: white; 
-        font-family: sans-serif; 
-        text-align: center; 
-        margin: 0;
-        padding: 10px;
-        /* Mencegah scroll dan pantulan di iPad */
-        overflow: hidden; 
-        position: fixed;
-        width: 100%;
-        height: 100%;
-    }
-
-    .controls { 
-        padding: 15px; 
-        background: #222; 
-        margin-bottom: 20px; 
-        border-radius: 15px;
-    }
-
-    #piano-container { 
-        display: flex; 
-        flex-direction: column-reverse; 
-        gap: 5vh; /* Jarak antar baris pake persentase tinggi layar */
-        align-items: center; 
-        justify-content: center;
-    }
-
-    .octave-row { 
-        display: flex; 
-        position: relative; 
-        /* Ukuran baris disesuaikan */
-        height: 120px; 
-    }
-
-    /* Ukuran Tombol Utama - Diperbesar untuk iPad */
-    .btn-main { 
-        width: 10vw;  /* Ukuran tombol 10% dari lebar layar */
-        height: 10vw; 
-        max-width: 80px; /* Batas maksimal supaya gak kegedean di monitor */
-        max-height: 80px;
-        border-radius: 50%; 
-        border: none; 
-        margin: 0 8px; 
-        cursor: pointer; 
-        background: white; 
-        font-weight: bold; 
-        font-size: 24px; /* Angka diperbesar */
-        z-index: 2; 
-        touch-action: none;
-    }
-
-    /* Ukuran Tombol Sharp (#) - Diperbesar juga */
-    .btn-sharp { 
-        width: 7vw; 
-        height: 7vw; 
-        max-width: 55px;
-        max-height: 55px;
-        border-radius: 50%; 
-        border: none; 
-        position: absolute; 
-        top: -40px; 
-        background: #444; 
-        color: #fb0; 
-        z-index: 3; 
-        font-size: 14px;
-        touch-action: none;
-    }
-
-    .btn-main:active, .btn-sharp:active { 
-        transform: scale(0.95); 
-        background: #0fc; 
-    }
-
-    #loading-msg { color: #0fc; font-size: 16px; margin-top: 5px; }
-</style>
+    <style>
+        body { 
+            background: #111; color: white; font-family: sans-serif; text-align: center; 
+            margin: 0; padding: 10px; overflow: hidden; position: fixed; 
+            width: 100%; height: 100%; touch-action: none;
+            -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+        .controls { padding: 15px; background: #222; margin-bottom: 20px; border-radius: 15px; }
+        #piano-container { 
+            display: flex; flex-direction: column-reverse; gap: 4vh; 
+            align-items: center; justify-content: center; height: 70vh;
+        }
+        .octave-row { display: flex; position: relative; height: 100px; margin-bottom: 20px; }
+        .btn-main { 
+            width: 9vw; height: 9vw; max-width: 80px; max-height: 80px;
+            border-radius: 50%; border: none; margin: 0 8px; cursor: pointer; 
+            background: white; font-weight: bold; font-size: 22px; z-index: 2; 
+        }
+        .btn-sharp { 
+            width: 7vw; height: 7vw; max-width: 55px; max-height: 55px;
+            border-radius: 50%; border: none; position: absolute; top: -35px; 
+            background: #444; color: #fb0; z-index: 3; font-size: 12px;
+        }
+        .btn-main:active, .btn-sharp:active { transform: scale(0.92); background: #0fc !important; }
+        #loading-msg { color: #0fc; font-size: 16px; margin-top: 5px; }
+    </style>
 </head>
 <body>
 
     <div class="controls">
-        <h2>MULTI-INSTRUMENT PIANO</h2>
+        <h2>PIANO PRO MULTI-TOUCH</h2>
         <select id="inst-select" onchange="loadInstrument()">
             <option value="piano">Piano (Online)</option>
             <option value="violin">Violin</option>
@@ -98,7 +46,7 @@
             <option value="bell">Bell</option>
             <option value="guitar">Guitar</option>
         </select>
-        <div id="loading-msg">Menunggu instruksi...</div>
+        <div id="loading-msg">Klik tombol untuk mulai</div>
     </div>
 
     <div id="piano-container"></div>
@@ -106,8 +54,6 @@
     <script>
         const loadingMsg = document.getElementById('loading-msg');
         let sampler;
-        
-        // Tambahkan efek Reverb supaya suara lebih megah
         const reverb = new Tone.Reverb(1.5).toDestination();
 
         const instrumentLinks = {
@@ -123,51 +69,29 @@
 
         function loadInstrument() {
             const selected = document.getElementById('inst-select').value;
-            loadingMsg.innerText = "Memuat suara " + selected + "...";
-            loadingMsg.style.color = "#fb0";
-
+            loadingMsg.innerText = "Memuat " + selected + "...";
             if(sampler) sampler.dispose();
-
-            // Deteksi nada dasar berdasarkan nama file agar tidak fals
-            let rootNote = "C3";
-            if (selected === "piano") rootNote = "C4";
-            if (selected === "flute") rootNote = "C5";
+            let rootNote = (selected === "flute") ? "C5" : (selected === "piano" ? "C4" : "C3");
 
             sampler = new Tone.Sampler({
                 urls: { [rootNote]: instrumentLinks[selected] },
-                onload: () => {
-                    loadingMsg.innerText = "Suara " + selected + " siap dimainkan!";
-                    loadingMsg.style.color = "#0fc";
-                },
-                onerror: (err) => {
-                    loadingMsg.innerText = "Gagal memuat: " + instrumentLinks[selected] + " (Cek folder/server)";
-                    loadingMsg.style.color = "#f44";
-                }
-            }).connect(reverb); // Sambungkan ke efek reverb
+                onload: () => { loadingMsg.innerText = selected + " Siap!"; }
+            }).connect(reverb);
         }
 
-        // Jalankan loading pertama kali
         loadInstrument();
 
         async function playNote(note) {
-            // Penting: Memulai audio context pada interaksi pertama
-            if (Tone.context.state !== 'running') {
-                await Tone.start();
-            }
-            
+            if (Tone.context.state !== 'running') await Tone.start();
             if (sampler && sampler.loaded) {
                 sampler.triggerAttackRelease(note, "2n");
             }
         }
 
-        // Generate Tombol
         const container = document.getElementById('piano-container');
         const mainNotes = ["C", "D", "E", "F", "G", "A", "B", "C"];
         const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
-        const sharps = [
-            {n:"C#", p:35}, {n:"D#", p:95}, 
-            {n:"F#", p:215}, {n:"G#", p:275}, {n:"A#", p:335}
-        ];
+        const sharps = [{n:"C#", p:50}, {n:"D#", p:115}, {n:"F#", p:245}, {n:"G#", p:310}, {n:"A#", p:375}];
 
         for (let row = 0; row < 4; row++) {
             const octave = row + 2;
@@ -180,42 +104,31 @@
                 btn.innerText = labels[i];
                 let note = (i === 7) ? n + (octave + 1) : n + octave;
                 
-                btn.onmousedown = () => playNote(note);
-                btn.ontouchstart = (e) => { e.preventDefault(); playNote(note); };
+                btn.onmousedown = (e) => { e.preventDefault(); playNote(note); };
+                btn.addEventListener('touchstart', (e) => { 
+                    e.preventDefault(); 
+                    playNote(note); 
+                }, { passive: false });
+                
                 rowDiv.appendChild(btn);
             });
 
-            // Di dalam perulangan row...
-            sharps.forEach((s, index) => {
+            sharps.forEach((s) => {
                 const b = document.createElement('button');
                 b.className = 'btn-sharp';
-    
-                // Rumus agar posisi Sharp selalu di tengah-tengah antara dua tombol utama
-                // Kita hitung berdasarkan lebar tombol utama (btn-main)
-                const spacing = 10; // Ini harus sama dengan margin di CSS (8px + sedikit celah)
-                let offset = 48; // Titik awal
-                if (index >= 2) offset += 10; // Celah ekstra antara Mi dan Fa (E & F)
-
-                // Logika posisi yang lebih fleksibel
-                const positions = [50, 115, 245, 310, 375]; 
-                // Jika di iPad masih kurang pas, angkanya bisa kita adjust lagi
-                b.style.left = (positions[index]) + "px"; 
-    
+                b.style.left = s.p + "px";
                 b.innerText = s.n;
-    
-                const playSharp = (e) => {
-                if(e) e.preventDefault();
-                play(s.n + oct);
-                };
-
-                b.onmousedown = playSharp;
-                b.addEventListener('touchstart', playSharp, { passive: false });
-    
+                
+                b.onmousedown = (e) => { e.preventDefault(); playNote(s.n + octave); };
+                b.addEventListener('touchstart', (e) => { 
+                    e.preventDefault(); 
+                    playNote(s.n + octave); 
+                }, { passive: false });
+                
                 rowDiv.appendChild(b);
-                });
+            });
             container.appendChild(rowDiv);
         }
     </script>
 </body>
 </html>
-

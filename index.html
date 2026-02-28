@@ -22,11 +22,30 @@
         .octave-group { display: flex; flex-direction: column; align-items: center; }
         
         /* Baris Sharp lebih rapat ke bawah */
-        .sharp-row { display: flex; justify-content: center; margin-bottom: 5px; }
-        .major-row { display: flex; justify-content: center; }
+        .sharp-row { 
+            display: flex; 
+            justify-content: flex-start; /* UBAH INI dari center ke flex-start */
+            margin-bottom: -15px; /* Sedikit lebih rapat agar enak dipencet */
+            padding-left: 8.5vw; /* Jarak awal agar #1 pas di sela 1 & 2 */
+            z-index: 10; 
+            width: 100%;
+            max-width: 450px; /* Sesuaikan dengan lebar piano kamu */
+        }
+        .major-row { 
+            display: flex; 
+            justify-content: flex-start; /* Samakan agar patokan kirinya sinkron */
+            width: 100%;
+            max-width: 450px;
+        }
 
         /* Key Slot dengan jarak (Gap) untuk mencegah delay sentuhan */
-        .key-slot { width: 11vw; max-width: 50px; display: flex; justify-content: center; margin: 0 3px; }
+        .key-slot { 
+            width: 11vw; 
+            max-width: 50px; 
+            display: flex; 
+            justify-content: center; 
+            margin: 0 2px; /* Margin diperkecil agar tidak delay tapi tetap ada celah */
+        }
 
         .btn-key { 
             width: 10vw; height: 10vw; max-width: 44px; max-height: 44px;
@@ -37,13 +56,14 @@
 
         .btn-major { background: #fff; color: #333; }
         
-        /* Tombol Sharp diperkecil */
         .btn-sharp { 
-            background: #333; color: #fb0; font-size: 11px; 
-            width: 8vw; height: 8vw; max-width: 34px; max-height: 34px;
+             background: #333; color: #fb0; font-size: 11px; 
+            width: 8.5vw; height: 8.5vw; max-width: 38px; max-height: 38px;
             box-shadow: 0 3px #000; 
-            position: relative; 
-            left: 6.5vw; /* Geser ke kanan setengah dari lebar slot tombol putih */
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
         }
 
         .active { background: #0fc !important; color: #111 !important; transform: translateY(3px); box-shadow: none !important; }
@@ -179,5 +199,6 @@
     </script>
 </body>
 </html>
+
 
 

@@ -127,12 +127,14 @@
                 urls: { [root]: instrumentLinks[selected] },
                 // SUSTAIN: Nilai release diperbesar (dari 1.2 ke 2.5) 
                 // agar suara tetap berbunyi halus setelah tombol dilepas
-                release: 2.5, 
+                polyphony: 64,
+                release: 3.5,
+                attack: 0,
                 baseUrl: "./",
                 onload: () => { msg.innerText = "SIAP!"; }
             }).connect(filter); // Hubungkan ke rangkaian efek
             
-            sampler.volume.value = 2; // Volume disesuaikan agar tidak pecah karena efek
+            sampler.volume.value = 4; // Volume disesuaikan agar tidak pecah karena efek
         }
 
         loadInstrument();
@@ -214,6 +216,7 @@
     </script>
 </body>
 </html>
+
 
 
 

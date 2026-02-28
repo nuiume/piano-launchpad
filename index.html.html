@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Pro Custom</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .controls { padding: 20px; background: #222; margin-bottom: 20px; border-radius: 15px; }
+        #piano-container { display: flex; flex-direction: column-reverse; gap: 40px; align-items: center; }
+        .octave-row { display: flex; position: relative; height: 60px; }
+        .btn-main { width: 50px; height: 50px; border-radius: 50%; border: none; margin: 0 5px; cursor: pointer; background: white; font-weight: bold; z-index: 2; transition: 0.1s; }
+        .btn-sharp { width: 35px; height: 35px; border-radius: 50%; border: none; position: absolute; top: -25px; background: #444; color: #fb0; z-index: 3; cursor: pointer; transition: 0.1s; }
+        .btn-main:active, .btn-sharp:active { transform: scale(0.9); background: #0fc; }
+        #loading-msg { color: #0fc; font-size: 14px; margin-top: 10px; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h2>MULTI-INSTRUMENT PIANO</h2>
+        <select id="inst-select" onchange="loadInstrument()">
+            <option value="piano">Piano (Online)</option>
+            <option value="violin">Violin</option>
+            <option value="flute">Flute</option>
+            <option value="marimba">Marimba</option>
+            <option value="kalimba">Kalimba</option>
+            <option value="musicbox">Music Box</option>
+            <option value="bell">Bell</option>
+            <option value="guitar">Guitar</option>
+        </select>
+        <div id="loading-msg">Menunggu instruksi...</div>
+    </div>
+
+    <div id="piano-container"></div>
+
+    <script>
+        const loadingMsg = document.getElementById('loading-msg');
+        let sampler;
+        
+        // Tambahkan efek Reverb supaya suara lebih megah
+        const reverb = new Tone.Reverb(1.5).toDestination();
+
+        const instrumentLinks = {
+            piano: "https://tonejs.github.io/audio/salamander/C4.mp3",
+            violin: "violin-c3.mp3",
+            flute: "flute-c5.mp3",
+            marimba: "marimba-c3.mp3",
+            kalimba: "kalimba-c3.mp3",
+            musicbox: "musicbox-c3.mp3",
+            bell: "bell-c3.mp3",
+            guitar: "guitar-c3.mp3"
+        };
+
+        function loadInstrument() {
+            const selected = document.getElementById('inst-select').value;
+            loadingMsg.innerText = "Memuat suara " + selected + "...";
+            loadingMsg.style.color = "#fb0";
+
+            if(sampler) sampler.dispose();
+
+            // Deteksi nada dasar berdasarkan nama file agar tidak fals
+            let rootNote = "C3";
+            if (selected === "piano") rootNote = "C4";
+            if (selected === "flute") rootNote = "C5";
+
+            sampler = new Tone.Sampler({
+                urls: { [rootNote]: instrumentLinks[selected] },
+                onload: () => {
+                    loadingMsg.innerText = "Suara " + selected + " siap dimainkan!";
+                    loadingMsg.style.color = "#0fc";
+                },
+                onerror: (err) => {
+                    loadingMsg.innerText = "Gagal memuat: " + instrumentLinks[selected] + " (Cek folder/server)";
+                    loadingMsg.style.color = "#f44";
+                }
+            }).connect(reverb); // Sambungkan ke efek reverb
+        }
+
+        // Jalankan loading pertama kali
+        loadInstrument();
+
+        async function playNote(note) {
+            // Penting: Memulai audio context pada interaksi pertama
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+            }
+            
+            if (sampler && sampler.loaded) {
+                sampler.triggerAttackRelease(note, "2n");
+            }
+        }
+
+        // Generate Tombol
+        const container = document.getElementById('piano-container');
+        const mainNotes = ["C", "D", "E", "F", "G", "A", "B", "C"];
+        const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
+        const sharps = [
+            {n:"C#", p:35}, {n:"D#", p:95}, 
+            {n:"F#", p:215}, {n:"G#", p:275}, {n:"A#", p:335}
+        ];
+
+        for (let row = 0; row < 4; row++) {
+            const octave = row + 2;
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'octave-row';
+
+            mainNotes.forEach((n, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-main';
+                btn.innerText = labels[i];
+                let note = (i === 7) ? n + (octave + 1) : n + octave;
+                
+                btn.onmousedown = () => playNote(note);
+                btn.ontouchstart = (e) => { e.preventDefault(); playNote(note); };
+                rowDiv.appendChild(btn);
+            });
+
+            sharps.forEach(s => {
+                const b = document.createElement('button');
+                b.className = 'btn-sharp';
+                b.style.left = s.p + "px";
+                b.innerText = s.n;
+                
+                b.onmousedown = () => playNote(s.n + octave);
+                b.ontouchstart = (e) => { e.preventDefault(); playNote(s.n + octave); };
+                rowDiv.appendChild(b);
+            });
+            container.appendChild(rowDiv);
+        }
+    </script>
+</body>
+</html>

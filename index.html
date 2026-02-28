@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Piano 4-Octave Fix</title>
+    <title>Piano 4-Octave Keyboard Sync</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box;
@@ -35,6 +35,7 @@
             box-shadow: 0 3px #000; border-radius: 50%; border: none;
             position: relative; left: 55%; 
         }
+        /* EFEK NYALA */
         .active { background: #0fc !important; color: #111 !important; transform: translateY(3px); box-shadow: none !important; }
         #loading-msg { color: #0fc; font-size: 12px; margin-left: 8px; }
     </style>
@@ -62,8 +63,8 @@
 
     <script>
         let sampler;
-        const reverb = new Tone.Reverb({ decay: 3, wet: 0.2 }).toDestination();
-        const filter = new Tone.Filter(8000, "lowpass").toDestination();
+        const reverb = new Tone.Reverb({ decay: 2.5, wet: 0.2 }).toDestination();
+        const filter = new Tone.Filter(8000, "lowpass").connect(reverb);
 
         const instrumentLinks = {
             piano: "piano-c3.mp3", kalimba: "kalimba-c3.mp3",
@@ -82,17 +83,17 @@
             sampler = new Tone.Sampler({
                 urls: { "C3": instrumentLinks[selected] },
                 polyphony: 32,
-                release: 3,
+                release: 2.5,
                 baseUrl: "./",
                 onload: () => { msg.innerText = "SIAP!"; }
-            }).connect(filter).connect(reverb);
+            }).connect(filter);
             sampler.volume.value = 4;
         }
 
         loadInstrument();
 
-        async function play(note, el) {
-            if (Tone.context.state !== 'running') await Tone.start();
+        function play(note, el) {
+            if (Tone.context.state !== 'running') Tone.start();
             if (sampler && sampler.loaded) {
                 sampler.triggerAttack(note);
                 if(el) el.classList.add('active');
@@ -111,9 +112,8 @@
         const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
         const hasSharp = [true, true, false, true, true, true, false, false];
 
-        // Buat Baris Tombol
         for (let row = 0; row < 4; row++) {
-            const oct = row + 1; // row 1=okt1, row 2=okt2, dst.
+            const oct = row + 1;
             const octaveGroup = document.createElement('div');
             octaveGroup.className = 'octave-group';
             const sharpRow = document.createElement('div');
@@ -125,26 +125,28 @@
                 const currentOct = (i === 7) ? oct + 1 : oct;
                 const mNote = n + currentOct;
 
+                // Major Key
                 const mSlot = document.createElement('div');
                 mSlot.className = 'key-slot';
                 const mb = document.createElement('button');
                 mb.className = 'btn-key btn-major';
+                mb.id = "key-" + mNote; // KASIH ID BIAR BISA DIPANGGIL KEYBOARD
                 mb.innerText = labels[i];
-                
                 mb.onmousedown = () => play(mNote, mb);
                 mb.onmouseup = mb.onmouseleave = () => stop(mNote, mb);
                 mb.addEventListener('touchstart', (e) => { e.preventDefault(); play(mNote, mb); });
                 mb.addEventListener('touchend', (e) => { e.preventDefault(); stop(mNote, mb); });
-                
                 mSlot.appendChild(mb);
                 majorRow.appendChild(mSlot);
 
+                // Sharp Key
                 const sSlot = document.createElement('div');
                 sSlot.className = 'key-slot';
                 if (hasSharp[i]) {
                     const sNote = n + "#" + currentOct;
                     const sb = document.createElement('button');
                     sb.className = 'btn-key btn-sharp';
+                    sb.id = "key-" + sNote; // KASIH ID JUGA
                     sb.innerText = labels[i] + "#";
                     sb.onmousedown = () => play(sNote, sb);
                     sb.onmouseup = sb.onmouseleave = () => stop(sNote, sb);
@@ -159,7 +161,7 @@
             container.appendChild(octaveGroup);
         }
 
-        // --- KONTROL KEYBOARD PC (DI LUAR LOOP) ---
+        // --- KONTROL KEYBOARD PC DENGAN SYNC VISUAL ---
         const keyMap = {
             "z": "C2", "s": "C#2", "x": "D2", "d": "D#2", "c": "E2", "v": "F2", "g": "F#2", "b": "G2", "h": "G#2", "n": "A2", "j": "A#2", "m": "B2",
             "a": "C3", "w": "C#3", "s": "D3", "e": "D#3", "d": "E3", "f": "F3", "t": "F#3", "g": "G3", "y": "G#3", "h": "A3", "u": "A#3", "j": "B3", "k": "C4",
@@ -169,19 +171,17 @@
         const activeKeys = new Set();
         window.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
-            if (keyMap[key] && !activeKeys.has(key)) {
+            const note = keyMap[key];
+            if (note && !activeKeys.has(key)) {
                 activeKeys.add(key);
-                play(keyMap[key]); 
+                const el = document.getElementById("key-" + note); // CARI TOMBOLNYA
+                play(note, el); // NYALAKAN SUARA + WARNA
             }
         });
 
         window.addEventListener('keyup', (e) => {
             const key = e.key.toLowerCase();
-            if (keyMap[key]) {
+            const note = keyMap[key];
+            if (note) {
                 activeKeys.delete(key);
-                stop(keyMap[key]);
-            }
-        });
-    </script>
-</body>
-</html>
+                const el = document

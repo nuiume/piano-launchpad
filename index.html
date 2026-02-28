@@ -3,112 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Piano 4-Octave Mobile</title>
+    <title>Piano Pro Touch</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
-        * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box;
-          -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;}
+        * { 
+            -webkit-tap-highlight-color: transparent; 
+            touch-action: none; /* Kunci semua gesture browser (zoom/scroll) */
+            box-sizing: border-box;
+            -webkit-user-select: none; user-select: none;
+        }
         body { 
-            background: #111; color: white; font-family: sans-serif; 
-            margin: 0; padding: 0; overflow: hidden; position: fixed;
-            width: 100%; height: 100%; touch-action: none;
+            background: #000; margin: 0; padding: 0; overflow: hidden; 
+            position: fixed; width: 100%; height: 100%;
         }
-        .controls { padding: 8px; background: #222; text-align: center; border-bottom: 1px solid #444; height: 50px; }
         #piano-container { 
-            height: calc(100vh - 50px); display: flex; flex-direction: column-reverse; 
-            justify-content: center; align-items: center; gap: 12px; padding: 20px;
+            height: 100vh; display: flex; flex-direction: column-reverse; 
+            justify-content: center; align-items: center; gap: 5px; padding: 10px;
         }
-        .octave-group { display: flex; flex-direction: column; align-items: center; }
-        .sharp-row { display: flex; justify-content: center; margin-bottom: -25px; z-index: 10; width: 100%; }
-        .major-row { display: flex; justify-content: center; width: 100%; }
-        .key-slot { width: 13vw; max-width: 80px; display: flex; justify-content: center; margin: 0 5px; }
+        .octave-group { display: flex; flex-direction: column; align-items: center; position: relative; }
+        
+        .sharp-row, .major-row { display: flex; justify-content: center; width: 100%; }
+        
+        /* Baris Sharp ditarik lebih dekat tapi area sentuh dibuat bersih */
+        .sharp-row { margin-bottom: -35px; z-index: 20; position: relative; }
+        .major-row { z-index: 10; position: relative; }
+
+        .key-slot { width: 12vw; max-width: 70px; display: flex; justify-content: center; margin: 0 4px; }
+
         .btn-key { 
-            width: 12vw; height: 12vw; max-width: 75px; max-height: 75px;
-            border-radius: 25%; border: none; font-weight: bold; font-size: 16px;
-            cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: 0.05s; box-shadow: 0 3px #888;
+            width: 100%; height: 12vw; max-height: 70px;
+            border-radius: 15px; border: none; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px #666; position: relative;
         }
+
         .btn-major { background: #fff; color: #333; }
+        
         .btn-sharp { 
-            background: #333; color: #fb0; font-size: 11px; 
-            width: 10vw; height: 10vw; max-width: 50px; max-height: 50px;
-            box-shadow: 0 3px #000; border-radius: 50%; border: none;
-            position: relative; left: 55%; 
+            background: #222; color: #fb0; font-size: 10px;
+            width: 9vw; height: 9vw; max-width: 50px; max-height: 50px;
+            border-radius: 50%; box-shadow: 0 4px #000;
+            left: 50%; /* Center di celah */
         }
-        .active { background: #0fc !important; color: #111 !important; transform: translateY(3px); box-shadow: none !important; }
-        #loading-msg { color: #0fc; font-size: 12px; margin-left: 8px; }
+
+        /* VISUAL FEEDBACK: INSTAN TANPA DELAY */
+        .active { 
+            background: #0fc !important; 
+            color: #000 !important; 
+            transform: translateY(4px); 
+            box-shadow: none !important; 
+        }
     </style>
 </head>
 <body>
-
-    <div class="controls">
-        <select id="inst-select" onchange="loadInstrument()" style="padding:5px; border-radius:5px;">
-            <option value="piano">Piano</option>
-            <option value="violin">Violin</option>
-            <option value="flute">Flute</option>
-            <option value="marimba">Marimba</option>
-            <option value="kalimba">Kalimba</option>
-            <option value="guitar">Guitar</option>
-            <option value="musicbox">Music Box</option>
-            <option value="pipa">Pipa</option>
-            <option value="erhu">Erhu</option>
-            <option value="guzheng">Guzheng</option>
-            <option value="koto">Koto</option>
-        </select>
-        <span id="loading-msg">Loading...</span>
-    </div>
 
     <div id="piano-container"></div>
 
     <script>
         let sampler;
-        const reverb = new Tone.Reverb({ decay: 2.5, wet: 0.2 }).toDestination();
-        const filter = new Tone.Filter(8000, "lowpass").connect(reverb);
+        // Reverb dibuat 'wet' kecil saja biar beban prosesor iPad enteng
+        const reverb = new Tone.Reverb({ decay: 1.5, wet: 0.1 }).toDestination();
 
-        const instrumentLinks = {
-            piano: "piano-c3.mp3", kalimba: "kalimba-c3.mp3",
-            violin: "violin-c3.mp3", flute: "flute-c3.mp3", 
-            marimba: "marimba-c3.mp3", guitar: "guitar-c3.mp3",
-            musicbox: "musicbox-c3.mp3", pipa: "pipa-c3.mp3",
-            erhu: "erhu-c3.mp3", guzheng: "guzheng-c3.mp3", koto: "koto-c3.mp3"
-        };
+        const instrumentLinks = { piano: "piano-c3.mp3" }; // Contoh piano saja
 
-        async function loadInstrument() {
-            const selected = document.getElementById('inst-select').value;
-            const msg = document.getElementById('loading-msg');
-            msg.innerText = "...";
-            if(sampler) sampler.dispose();
-            
+        async function init() {
             sampler = new Tone.Sampler({
-                urls: { "C3": instrumentLinks[selected] },
-                polyphony: 32,
-                release: 2.5,
+                urls: { "C3": "piano-c3.mp3" },
+                release: 1,
                 baseUrl: "./",
-                onload: () => { msg.innerText = "SIAP!"; }
-            }).connect(filter);
-            sampler.volume.value = 4;
+                onload: () => { console.log("Siap!"); }
+            }).connect(reverb);
         }
+        init();
 
-        loadInstrument();
-
-        function play(note, el) {
+        function handleStart(note, el, e) {
+            e.preventDefault(); // Stop browser dari 'mikir' ini mau scroll atau klik
             if (Tone.context.state !== 'running') Tone.start();
             if (sampler && sampler.loaded) {
                 sampler.triggerAttack(note);
-                if(el) el.classList.add('active');
+                el.classList.add('active');
             }
         }
 
-        function stop(note, el) {
+        function handleEnd(note, el, e) {
+            e.preventDefault();
             if (sampler && sampler.loaded) {
-                sampler.triggerRelease(note, "+0.1");
-                if(el) el.classList.remove('active');
+                sampler.triggerRelease(note, "+0.05");
+                el.classList.remove('active');
             }
         }
 
+        // Pembuatan Piano
         const container = document.getElementById('piano-container');
         const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
-        const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
         const hasSharp = [true, true, false, true, true, true, false, false];
 
         for (let row = 0; row < 4; row++) {
@@ -124,39 +111,33 @@
                 const currentOct = (i === 7) ? oct + 1 : oct;
                 const mNote = n + currentOct;
 
+                // Major
                 const mSlot = document.createElement('div');
                 mSlot.className = 'key-slot';
                 const mb = document.createElement('button');
                 mb.className = 'btn-key btn-major';
-                mb.innerText = labels[i];
+                mb.innerText = i + 1;
                 
-                // Event Jari (Touch) & Mouse saja
-                mb.onmousedown = () => play(mNote, mb);
-                mb.onmouseup = mb.onmouseleave = () => stop(mNote, mb);
-                mb.addEventListener('touchstart', (e) => { e.preventDefault(); play(mNote, mb); });
-                mb.addEventListener('touchend', (e) => { e.preventDefault(); stop(mNote, mb); });
+                // PAKE ADDEVENTLISTENER AGAR BERSIH
+                mb.addEventListener('touchstart', (e) => handleStart(mNote, mb, e));
+                mb.addEventListener('touchend', (e) => handleEnd(mNote, mb, e));
                 
                 mSlot.appendChild(mb);
                 majorRow.appendChild(mSlot);
 
+                // Sharp
+                const sSlot = document.createElement('div');
+                sSlot.className = 'key-slot';
                 if (hasSharp[i]) {
                     const sNote = n + "#" + currentOct;
-                    const sSlot = document.createElement('div');
-                    sSlot.className = 'key-slot';
                     const sb = document.createElement('button');
                     sb.className = 'btn-key btn-sharp';
-                    sb.innerText = labels[i] + "#";
-                    sb.onmousedown = () => play(sNote, sb);
-                    sb.onmouseup = sb.onmouseleave = () => stop(sNote, sb);
-                    sb.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); play(sNote, sb); });
-                    sb.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); stop(sNote, sb); });
+                    sb.innerText = (i + 1) + "#";
+                    sb.addEventListener('touchstart', (e) => handleStart(sNote, sb, e));
+                    sb.addEventListener('touchend', (e) => handleEnd(sNote, sb, e));
                     sSlot.appendChild(sb);
-                    sharpRow.appendChild(sSlot);
-                } else {
-                    const emptySlot = document.createElement('div');
-                    emptySlot.className = 'key-slot';
-                    sharpRow.appendChild(emptySlot);
                 }
+                sharpRow.appendChild(sSlot);
             });
             octaveGroup.appendChild(sharpRow);
             octaveGroup.appendChild(majorRow);

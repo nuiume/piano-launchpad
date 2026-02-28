@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Piano 4-Octave Pro</title>
+    <title>Piano 4-Octave Cuy</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box;
@@ -101,10 +101,10 @@
         // 1. SETUP EFFECT CHAIN (Efek biar suara 'basah' dan megah)
         // Decay: 4 (semakin besar semakin panjang gema ruangannya)
         // Wet: 0.3 (30% suara bergema, 70% suara asli)
-        const reverb = new Tone.Reverb({ decay: 4, wet: 0.3 }).toDestination();
+        const reverb = new Tone.Reverb({ decay: 3, wet: 0.2 }).toDestination();
         
         // Chorus menambah tekstur suara agar lebih 'tebal'
-        const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(reverb);
+        //const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(reverb);
         
         // Filter untuk membuang frekuensi yang terlalu tajam agar lebih halus
         const filter = new Tone.Filter(8000, "lowpass").connect(chorus);
@@ -130,8 +130,8 @@
                 urls: { [root]: instrumentLinks[selected] },
                 // SUSTAIN: Nilai release diperbesar (dari 1.2 ke 2.5) 
                 // agar suara tetap berbunyi halus setelah tombol dilepas
-                polyphony: 64,
-                release: 3.5,
+                polyphony: 32,
+                release: 3,
                 attack: 0,
                 baseUrl: "./",
                 onload: () => { msg.innerText = "SIAP!"; }
@@ -154,7 +154,7 @@
         function stop(note, el) {
             if (sampler && sampler.loaded) {
                 // Release memicu ekor suara yang sudah kita set di 'release: 2.5'
-                sampler.triggerRelease(note);
+                sampler.triggerRelease(note, "+0.1");
                 el.classList.remove('active');
             }
         }
@@ -219,6 +219,7 @@
     </script>
 </body>
 </html>
+
 
 
 

@@ -3,56 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piano Akurat iPad</title>
+    <title>Piano iPad Fix</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body { 
-            background: #111; color: white; font-family: sans-serif; text-align: center; 
-            margin: 0; padding: 0; overflow: hidden; position: fixed; 
-            width: 100%; height: 100%; touch-action: none;
-            -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+            background: #111; color: white; font-family: sans-serif; 
+            margin: 0; padding: 0; overflow: hidden; position: fixed;
+            width: 100%; height: 100%; touch-action: none; /* Kunci Gesture iPad */
+            display: flex; flex-direction: column;
         }
-        .controls { padding: 15px; background: #222; z-index: 10; position: relative; }
+        .controls { padding: 10px; background: #222; text-align: center; z-index: 100; }
+        
         #piano-container { 
-            display: flex; flex-direction: column-reverse; gap: 2vh; 
-            align-items: center; justify-content: center; height: 80vh;
+            flex: 1; display: flex; flex-direction: column-reverse; 
+            justify-content: center; align-items: center; gap: 40px;
         }
-        .octave-row { display: flex; position: relative; height: 120px; margin-bottom: 30px; }
         
+        .octave-row { display: flex; gap: 10px; }
+
+        /* Container Tombol Putih */
+        .key-wrapper { position: relative; }
+
         .btn-main { 
-            width: 10vw; height: 10vw; max-width: 70px; max-height: 70px;
-            border-radius: 50%; border: none; margin: 0 5px; cursor: pointer; 
-            background: white; font-weight: bold; font-size: 20px; z-index: 2;
-            box-shadow: 0 4px #ccc;
+            width: 70px; height: 70px; border-radius: 50%; border: none;
+            background: white; color: black; font-weight: bold; font-size: 20px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 5px #bbb; touch-action: none;
         }
-        
+
+        /* Tombol Hitam - Sekarang nempel ke parent-nya */
         .btn-sharp { 
-            width: 8vw; height: 8vw; max-width: 55px; max-height: 55px;
-            border-radius: 50%; border: none; position: absolute; top: -45px; 
-            background: #444; color: #fb0; z-index: 3; font-size: 11px;
-            box-shadow: 0 4px #000;
+            position: absolute; top: -35px; right: -25px; /* Posisikan di sela-sela */
+            width: 50px; height: 50px; border-radius: 50%; border: none;
+            background: #444; color: #fb0; font-size: 12px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10; box-shadow: 0 5px #000; touch-action: none;
         }
 
         .btn-main:active, .btn-sharp:active { 
-            transform: translateY(4px); 
-            box-shadow: none;
-            background: #0fc !important; 
+            background: #0fc !important; transform: translateY(4px); box-shadow: none; 
         }
 
-        #loading-msg { color: #0fc; font-size: 14px; }
+        #loading-msg { color: #0fc; font-size: 14px; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <div class="controls">
-        <h3>PIANO MULTI-TOUCH AKURAT</h3>
-        <select id="inst-select" onchange="loadInstrument()">
+        <h3 style="margin:5px">PIANO IPAD PRO</h3>
+        <select id="inst-select" onchange="loadInstrument()" style="padding:5px">
             <option value="piano">Piano</option>
             <option value="violin">Violin</option>
             <option value="flute">Flute</option>
             <option value="marimba">Marimba</option>
         </select>
-        <div id="loading-msg">Loading...</div>
+        <div id="loading-msg">Memuat...</div>
     </div>
 
     <div id="piano-container"></div>
@@ -70,65 +75,55 @@
             let root = (selected === "flute") ? "C5" : (selected === "piano" ? "C4" : "C3");
             sampler = new Tone.Sampler({
                 urls: { [root]: instrumentLinks[selected] },
-                onload: () => { document.getElementById('loading-msg').innerText = "Siap!"; }
+                onload: () => { document.getElementById('loading-msg').innerText = "Siap Main!"; }
             }).toDestination();
         }
         loadInstrument();
 
-        async function playNote(note) {
+        async function play(note) {
             if (Tone.context.state !== 'running') await Tone.start();
-            if (sampler && sampler.loaded) {
-                sampler.triggerAttackRelease(note, "2n");
-            }
+            if (sampler && sampler.loaded) sampler.triggerAttackRelease(note, "2n");
         }
 
         const container = document.getElementById('piano-container');
-        // Tangga nada putih
-        const mainNotes = ["C", "D", "E", "F", "G", "A", "B"];
+        const notes = ["C", "D", "E", "F", "G", "A", "B"];
         const labels = ["1", "2", "3", "4", "5", "6", "7"];
-        
-        // Logika Sharp: null berarti kosong (antara Mi-Fa dan Si-Do)
-        const sharpNotes = ["C#", "D#", null, "F#", "G#", "A#", null];
+        // Sharp hanya muncul setelah C, D, F, G, A (E dan B tidak punya sharp)
+        const hasSharp = [true, true, false, true, true, true, false];
 
         for (let row = 0; row < 4; row++) {
-            const octave = row + 2;
+            const oct = row + 2;
             const rowDiv = document.createElement('div');
             rowDiv.className = 'octave-row';
 
-            mainNotes.forEach((n, i) => {
+            notes.forEach((n, i) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'key-wrapper';
+
                 // Tombol Putih
-                const btn = document.createElement('button');
-                btn.className = 'btn-main';
-                btn.innerText = labels[i];
-                const note = n + octave;
+                const b = document.createElement('button');
+                b.className = 'btn-main';
+                b.innerText = labels[i];
                 
-                const handler = (e) => {
-                    e.preventDefault(); e.stopPropagation();
-                    playNote(note);
-                };
-                btn.addEventListener('touchstart', handler, { passive: false });
-                btn.onmousedown = handler;
-                rowDiv.appendChild(btn);
+                const playMain = (e) => { e.preventDefault(); play(n + oct); };
+                b.addEventListener('touchstart', playMain, { passive: false });
+                b.onmousedown = playMain;
 
-                // Tombol Hitam (Sharp)
-                if (sharpNotes[i] !== null) {
-                    const sBtn = document.createElement('button');
-                    sBtn.className = 'btn-sharp';
-                    sBtn.innerText = sharpNotes[i];
-                    const sNote = sharpNotes[i] + octave;
+                wrapper.appendChild(b);
+
+                // Tombol Hitam
+                if (hasSharp[i]) {
+                    const s = document.createElement('button');
+                    s.className = 'btn-sharp';
+                    s.innerText = n + "#";
                     
-                    // Posisi: diletakkan di antara tombol putih saat ini dan berikutnya
-                    // Menggunakan persentase agar pas di iPad
-                    sBtn.style.left = (i * 11 + 6.5) + "vw"; 
-
-                    const sHandler = (e) => {
-                        e.preventDefault(); e.stopPropagation();
-                        playNote(sNote);
-                    };
-                    sBtn.addEventListener('touchstart', sHandler, { passive: false });
-                    sBtn.onmousedown = sHandler;
-                    rowDiv.appendChild(sBtn);
+                    const playSharp = (e) => { e.preventDefault(); e.stopPropagation(); play(n + "#" + oct); };
+                    s.addEventListener('touchstart', playSharp, { passive: false });
+                    s.onmousedown = playSharp;
+                    
+                    wrapper.appendChild(s);
                 }
+                rowDiv.appendChild(wrapper);
             });
             container.appendChild(rowDiv);
         }

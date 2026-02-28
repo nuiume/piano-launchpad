@@ -94,7 +94,17 @@
 
     <script>
         let sampler;
-        const reverb = new Tone.Reverb({ decay: 2, wet: 0.25 }).toDestination();
+        
+        // 1. SETUP EFFECT CHAIN (Efek biar suara 'basah' dan megah)
+        // Decay: 4 (semakin besar semakin panjang gema ruangannya)
+        // Wet: 0.3 (30% suara bergema, 70% suara asli)
+        const reverb = new Tone.Reverb({ decay: 4, wet: 0.3 }).toDestination();
+        
+        // Chorus menambah tekstur suara agar lebih 'tebal'
+        const chorus = new Tone.Chorus(4, 2.5, 0.5).connect(reverb);
+        
+        // Filter untuk membuang frekuensi yang terlalu tajam agar lebih halus
+        const filter = new Tone.Filter(8000, "lowpass").connect(chorus);
 
         const instrumentLinks = {
             piano: "piano-c3.mp3", kalimba: "kalimba-c3.mp3",
@@ -111,15 +121,17 @@
             if(sampler) sampler.dispose();
             
             let root = (selected === "flute") ? "C5" : "C3";
-            if(selected === "piano") root = "C3";
 
             sampler = new Tone.Sampler({
                 urls: { [root]: instrumentLinks[selected] },
-                release: 1.2,
+                // SUSTAIN: Nilai release diperbesar (dari 1.2 ke 2.5) 
+                // agar suara tetap berbunyi halus setelah tombol dilepas
+                release: 2.5, 
                 baseUrl: "./",
                 onload: () => { msg.innerText = "SIAP!"; }
-            }).connect(reverb);
-            sampler.volume.value = 4;
+            }).connect(filter); // Hubungkan ke rangkaian efek
+            
+            sampler.volume.value = 2; // Volume disesuaikan agar tidak pecah karena efek
         }
 
         loadInstrument();
@@ -127,6 +139,7 @@
         async function play(note, el) {
             if (Tone.context.state !== 'running') await Tone.start();
             if (sampler && sampler.loaded) {
+                // Gunakan triggerAttack agar sustain terasa lebih natural
                 sampler.triggerAttack(note);
                 el.classList.add('active');
             }
@@ -134,13 +147,14 @@
 
         function stop(note, el) {
             if (sampler && sampler.loaded) {
+                // Release memicu ekor suara yang sudah kita set di 'release: 2.5'
                 sampler.triggerRelease(note);
                 el.classList.remove('active');
             }
         }
 
+        // --- Logika Pembuatan Tombol (Tetap Sama) ---
         const container = document.getElementById('piano-container');
-        // Do Re Mi Fa Sol La Si Do (8 nada)
         const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
         const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
         const hasSharp = [true, true, false, true, true, true, false, false];
@@ -158,7 +172,6 @@
             notes.forEach((n, i) => {
                 const currentOct = (i === 7) ? oct + 1 : oct;
                 
-                // 1. Major Key (Baris Putih)
                 const mSlot = document.createElement('div');
                 mSlot.className = 'key-slot';
                 const mb = document.createElement('button');
@@ -175,8 +188,6 @@
                 mSlot.appendChild(mb);
                 majorRow.appendChild(mSlot);
 
-                // 2. Sharp Key (Baris Hitam)
-                // Kita buat slot kosong DULU, baru isi tombol jika hasSharp[i] benar
                 const sSlot = document.createElement('div');
                 sSlot.className = 'key-slot';
                 
@@ -202,6 +213,7 @@
     </script>
 </body>
 </html>
+
 
 
 

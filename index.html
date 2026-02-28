@@ -3,82 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piano Pro iPad Edition</title>
+    <title>Piano Akurat iPad</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body { 
             background: #111; color: white; font-family: sans-serif; text-align: center; 
-            margin: 0; padding: 10px; overflow: hidden; position: fixed; 
+            margin: 0; padding: 0; overflow: hidden; position: fixed; 
             width: 100%; height: 100%; touch-action: none;
             -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
         }
-        .controls { padding: 15px; background: #222; margin-bottom: 20px; border-radius: 15px; }
+        .controls { padding: 15px; background: #222; z-index: 10; position: relative; }
         #piano-container { 
-            display: flex; flex-direction: column-reverse; gap: 4vh; 
-            align-items: center; justify-content: center; height: 70vh;
+            display: flex; flex-direction: column-reverse; gap: 2vh; 
+            align-items: center; justify-content: center; height: 80vh;
         }
-        .octave-row { display: flex; position: relative; height: 100px; margin-bottom: 20px; }
+        .octave-row { display: flex; position: relative; height: 120px; margin-bottom: 30px; }
+        
         .btn-main { 
-            width: 9vw; height: 9vw; max-width: 80px; max-height: 80px;
-            border-radius: 50%; border: none; margin: 0 8px; cursor: pointer; 
-            background: white; font-weight: bold; font-size: 22px; z-index: 2; 
+            width: 10vw; height: 10vw; max-width: 70px; max-height: 70px;
+            border-radius: 50%; border: none; margin: 0 5px; cursor: pointer; 
+            background: white; font-weight: bold; font-size: 20px; z-index: 2;
+            box-shadow: 0 4px #ccc;
         }
+        
         .btn-sharp { 
-            width: 7vw; height: 7vw; max-width: 55px; max-height: 55px;
-            border-radius: 50%; border: none; position: absolute; top: -35px; 
-            background: #444; color: #fb0; z-index: 3; font-size: 12px;
+            width: 8vw; height: 8vw; max-width: 55px; max-height: 55px;
+            border-radius: 50%; border: none; position: absolute; top: -45px; 
+            background: #444; color: #fb0; z-index: 3; font-size: 11px;
+            box-shadow: 0 4px #000;
         }
-        .btn-main:active, .btn-sharp:active { transform: scale(0.92); background: #0fc !important; }
-        #loading-msg { color: #0fc; font-size: 16px; margin-top: 5px; }
+
+        .btn-main:active, .btn-sharp:active { 
+            transform: translateY(4px); 
+            box-shadow: none;
+            background: #0fc !important; 
+        }
+
+        #loading-msg { color: #0fc; font-size: 14px; }
     </style>
 </head>
 <body>
 
     <div class="controls">
-        <h2>PIANO PRO MULTI-TOUCH</h2>
+        <h3>PIANO MULTI-TOUCH AKURAT</h3>
         <select id="inst-select" onchange="loadInstrument()">
-            <option value="piano">Piano (Online)</option>
+            <option value="piano">Piano</option>
             <option value="violin">Violin</option>
             <option value="flute">Flute</option>
             <option value="marimba">Marimba</option>
-            <option value="kalimba">Kalimba</option>
-            <option value="musicbox">Music Box</option>
-            <option value="bell">Bell</option>
-            <option value="guitar">Guitar</option>
         </select>
-        <div id="loading-msg">Klik tombol untuk mulai</div>
+        <div id="loading-msg">Loading...</div>
     </div>
 
     <div id="piano-container"></div>
 
     <script>
-        const loadingMsg = document.getElementById('loading-msg');
         let sampler;
-        const reverb = new Tone.Reverb(1.5).toDestination();
-
         const instrumentLinks = {
             piano: "https://tonejs.github.io/audio/salamander/C4.mp3",
-            violin: "violin-c3.mp3",
-            flute: "flute-c5.mp3",
-            marimba: "marimba-c3.mp3",
-            kalimba: "kalimba-c3.mp3",
-            musicbox: "musicbox-c3.mp3",
-            bell: "bell-c3.mp3",
-            guitar: "guitar-c3.mp3"
+            violin: "violin-c3.mp3", flute: "flute-c5.mp3", marimba: "marimba-c3.mp3"
         };
 
         function loadInstrument() {
             const selected = document.getElementById('inst-select').value;
-            loadingMsg.innerText = "Memuat " + selected + "...";
             if(sampler) sampler.dispose();
-            let rootNote = (selected === "flute") ? "C5" : (selected === "piano" ? "C4" : "C3");
-
+            let root = (selected === "flute") ? "C5" : (selected === "piano" ? "C4" : "C3");
             sampler = new Tone.Sampler({
-                urls: { [rootNote]: instrumentLinks[selected] },
-                onload: () => { loadingMsg.innerText = selected + " Siap!"; }
-            }).connect(reverb);
+                urls: { [root]: instrumentLinks[selected] },
+                onload: () => { document.getElementById('loading-msg').innerText = "Siap!"; }
+            }).toDestination();
         }
-
         loadInstrument();
 
         async function playNote(note) {
@@ -89,9 +83,12 @@
         }
 
         const container = document.getElementById('piano-container');
-        const mainNotes = ["C", "D", "E", "F", "G", "A", "B", "C"];
-        const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
-        const sharps = [{n:"C#", p:50}, {n:"D#", p:115}, {n:"F#", p:245}, {n:"G#", p:310}, {n:"A#", p:375}];
+        // Tangga nada putih
+        const mainNotes = ["C", "D", "E", "F", "G", "A", "B"];
+        const labels = ["1", "2", "3", "4", "5", "6", "7"];
+        
+        // Logika Sharp: null berarti kosong (antara Mi-Fa dan Si-Do)
+        const sharpNotes = ["C#", "D#", null, "F#", "G#", "A#", null];
 
         for (let row = 0; row < 4; row++) {
             const octave = row + 2;
@@ -99,33 +96,39 @@
             rowDiv.className = 'octave-row';
 
             mainNotes.forEach((n, i) => {
+                // Tombol Putih
                 const btn = document.createElement('button');
                 btn.className = 'btn-main';
                 btn.innerText = labels[i];
-                let note = (i === 7) ? n + (octave + 1) : n + octave;
+                const note = n + octave;
                 
-                btn.onmousedown = (e) => { e.preventDefault(); playNote(note); };
-                btn.addEventListener('touchstart', (e) => { 
-                    e.preventDefault(); 
-                    playNote(note); 
-                }, { passive: false });
-                
+                const handler = (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    playNote(note);
+                };
+                btn.addEventListener('touchstart', handler, { passive: false });
+                btn.onmousedown = handler;
                 rowDiv.appendChild(btn);
-            });
 
-            sharps.forEach((s) => {
-                const b = document.createElement('button');
-                b.className = 'btn-sharp';
-                b.style.left = s.p + "px";
-                b.innerText = s.n;
-                
-                b.onmousedown = (e) => { e.preventDefault(); playNote(s.n + octave); };
-                b.addEventListener('touchstart', (e) => { 
-                    e.preventDefault(); 
-                    playNote(s.n + octave); 
-                }, { passive: false });
-                
-                rowDiv.appendChild(b);
+                // Tombol Hitam (Sharp)
+                if (sharpNotes[i] !== null) {
+                    const sBtn = document.createElement('button');
+                    sBtn.className = 'btn-sharp';
+                    sBtn.innerText = sharpNotes[i];
+                    const sNote = sharpNotes[i] + octave;
+                    
+                    // Posisi: diletakkan di antara tombol putih saat ini dan berikutnya
+                    // Menggunakan persentase agar pas di iPad
+                    sBtn.style.left = (i * 11 + 6.5) + "vw"; 
+
+                    const sHandler = (e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        playNote(sNote);
+                    };
+                    sBtn.addEventListener('touchstart', sHandler, { passive: false });
+                    sBtn.onmousedown = sHandler;
+                    rowDiv.appendChild(sBtn);
+                }
             });
             container.appendChild(rowDiv);
         }

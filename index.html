@@ -85,8 +85,10 @@
             <option value="kalimba">Kalimba</option>
             <option value="guitar">Guitar</option>
             <option value="musicbox">Music Box</option>
-            <option value="bell">Bell</option>
-           
+            <option value="pipa">Pipa</option>
+            <option value="erhu">Erhu</option>
+            <option value="guzheng">Guzheng</option>
+            <option value="koto">Koto</option>
         </select>
         <span id="loading-msg">Loading...</span>
     </div>
@@ -109,9 +111,10 @@
 
         const instrumentLinks = {
             piano: "piano-c3.mp3", kalimba: "kalimba-c3.mp3",
-            violin: "violin-c3.mp3", flute: "flute-c5.mp3", 
+            violin: "violin-c3.mp3", flute: "flute-c3.mp3", 
             marimba: "marimba-c3.mp3", guitar: "guitar-c3.mp3",
-            musicbox: "musicbox-c3.mp3", bell: "bell-c3.mp3"
+            musicbox: "musicbox-c3.mp3", pipa: "pipa-c3.mp3",
+            erhu: "erhu-c3.mp3", guzheng: "guzheng-c3.mp3", koto: "koto-c3.mp3"
         };
 
         async function loadInstrument() {
@@ -121,7 +124,7 @@
             
             if(sampler) sampler.dispose();
             
-            let root = (selected === "flute") ? "C5" : "C3";
+            let root = "C3";
 
             sampler = new Tone.Sampler({
                 urls: { [root]: instrumentLinks[selected] },
@@ -216,6 +219,7 @@
     </script>
 </body>
 </html>
+
 
 
 

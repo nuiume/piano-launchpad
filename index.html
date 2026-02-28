@@ -5,16 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Piano Pro Custom</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <style>
-        body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .controls { padding: 20px; background: #222; margin-bottom: 20px; border-radius: 15px; }
-        #piano-container { display: flex; flex-direction: column-reverse; gap: 40px; align-items: center; }
-        .octave-row { display: flex; position: relative; height: 60px; }
-        .btn-main { width: 50px; height: 50px; border-radius: 50%; border: none; margin: 0 5px; cursor: pointer; background: white; font-weight: bold; z-index: 2; transition: 0.1s; }
-        .btn-sharp { width: 35px; height: 35px; border-radius: 50%; border: none; position: absolute; top: -25px; background: #444; color: #fb0; z-index: 3; cursor: pointer; transition: 0.1s; }
-        .btn-main:active, .btn-sharp:active { transform: scale(0.9); background: #0fc; }
-        #loading-msg { color: #0fc; font-size: 14px; margin-top: 10px; min-height: 20px; }
-    </style>
+   <style>
+    body { 
+        background: #111; 
+        color: white; 
+        font-family: sans-serif; 
+        text-align: center; 
+        margin: 0;
+        padding: 10px;
+        /* Mencegah scroll dan pantulan di iPad */
+        overflow: hidden; 
+        position: fixed;
+        width: 100%;
+        height: 100%;
+    }
+
+    .controls { 
+        padding: 15px; 
+        background: #222; 
+        margin-bottom: 20px; 
+        border-radius: 15px;
+    }
+
+    #piano-container { 
+        display: flex; 
+        flex-direction: column-reverse; 
+        gap: 5vh; /* Jarak antar baris pake persentase tinggi layar */
+        align-items: center; 
+        justify-content: center;
+    }
+
+    .octave-row { 
+        display: flex; 
+        position: relative; 
+        /* Ukuran baris disesuaikan */
+        height: 120px; 
+    }
+
+    /* Ukuran Tombol Utama - Diperbesar untuk iPad */
+    .btn-main { 
+        width: 10vw;  /* Ukuran tombol 10% dari lebar layar */
+        height: 10vw; 
+        max-width: 80px; /* Batas maksimal supaya gak kegedean di monitor */
+        max-height: 80px;
+        border-radius: 50%; 
+        border: none; 
+        margin: 0 8px; 
+        cursor: pointer; 
+        background: white; 
+        font-weight: bold; 
+        font-size: 24px; /* Angka diperbesar */
+        z-index: 2; 
+        touch-action: none;
+    }
+
+    /* Ukuran Tombol Sharp (#) - Diperbesar juga */
+    .btn-sharp { 
+        width: 7vw; 
+        height: 7vw; 
+        max-width: 55px;
+        max-height: 55px;
+        border-radius: 50%; 
+        border: none; 
+        position: absolute; 
+        top: -40px; 
+        background: #444; 
+        color: #fb0; 
+        z-index: 3; 
+        font-size: 14px;
+        touch-action: none;
+    }
+
+    .btn-main:active, .btn-sharp:active { 
+        transform: scale(0.95); 
+        background: #0fc; 
+    }
+
+    #loading-msg { color: #0fc; font-size: 16px; margin-top: 5px; }
+</style>
 </head>
 <body>
 
@@ -117,18 +185,37 @@
                 rowDiv.appendChild(btn);
             });
 
-            sharps.forEach(s => {
+            // Di dalam perulangan row...
+            sharps.forEach((s, index) => {
                 const b = document.createElement('button');
                 b.className = 'btn-sharp';
-                b.style.left = s.p + "px";
+    
+                // Rumus agar posisi Sharp selalu di tengah-tengah antara dua tombol utama
+                // Kita hitung berdasarkan lebar tombol utama (btn-main)
+                const spacing = 10; // Ini harus sama dengan margin di CSS (8px + sedikit celah)
+                let offset = 48; // Titik awal
+                if (index >= 2) offset += 10; // Celah ekstra antara Mi dan Fa (E & F)
+
+                // Logika posisi yang lebih fleksibel
+                const positions = [50, 115, 245, 310, 375]; 
+                // Jika di iPad masih kurang pas, angkanya bisa kita adjust lagi
+                b.style.left = (positions[index]) + "px"; 
+    
                 b.innerText = s.n;
-                
-                b.onmousedown = () => playNote(s.n + octave);
-                b.ontouchstart = (e) => { e.preventDefault(); playNote(s.n + octave); };
+    
+                const playSharp = (e) => {
+                if(e) e.preventDefault();
+                play(s.n + oct);
+                };
+
+                b.onmousedown = playSharp;
+                b.addEventListener('touchstart', playSharp, { passive: false });
+    
                 rowDiv.appendChild(b);
-            });
+                });
             container.appendChild(rowDiv);
         }
     </script>
 </body>
 </html>
+

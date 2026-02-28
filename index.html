@@ -3,81 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Piano Pro Touch</title>
+    <title>Piano 4-Octave Ultra Touch</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         * { 
             -webkit-tap-highlight-color: transparent; 
-            touch-action: none; /* Kunci semua gesture browser (zoom/scroll) */
+            touch-action: none; 
             box-sizing: border-box;
             -webkit-user-select: none; user-select: none;
         }
         body { 
-            background: #000; margin: 0; padding: 0; overflow: hidden; 
-            position: fixed; width: 100%; height: 100%;
+            background: #111; color: white; font-family: sans-serif; 
+            margin: 0; padding: 0; overflow: hidden; position: fixed;
+            width: 100%; height: 100%;
+        }
+        .controls { 
+            padding: 10px; background: #222; text-align: center; 
+            border-bottom: 1px solid #444; height: 60px; display: flex; 
+            align-items: center; justify-content: center; gap: 10px;
         }
         #piano-container { 
-            height: 100vh; display: flex; flex-direction: column-reverse; 
-            justify-content: center; align-items: center; gap: 5px; padding: 10px;
+            height: calc(100vh - 60px); display: flex; flex-direction: column-reverse; 
+            justify-content: center; align-items: center; gap: 20px; padding: 10px;
         }
         .octave-group { display: flex; flex-direction: column; align-items: center; position: relative; }
         
-        .sharp-row, .major-row { display: flex; justify-content: center; width: 100%; }
-        
-        /* Baris Sharp ditarik lebih dekat tapi area sentuh dibuat bersih */
-        .sharp-row { margin-bottom: -35px; z-index: 20; position: relative; }
-        .major-row { z-index: 10; position: relative; }
+        .sharp-row { 
+            display: flex; justify-content: center; margin-bottom: -22px; 
+            z-index: 20; width: 100%; position: relative;
+        }
+        .major-row { display: flex; justify-content: center; width: 100%; z-index: 10; position: relative; }
 
-        .key-slot { width: 12vw; max-width: 70px; display: flex; justify-content: center; margin: 0 4px; }
+        .key-slot { width: 12vw; max-width: 75px; display: flex; justify-content: center; margin: 0 6px; }
 
         .btn-key { 
-            width: 100%; height: 12vw; max-height: 70px;
-            border-radius: 15px; border: none; font-weight: bold;
+            width: 11vw; height: 11vw; max-width: 70px; max-height: 70px;
+            border-radius: 20%; border: none; font-weight: bold; font-size: 16px;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px #666; position: relative;
+            transition: none; box-shadow: 0 4px #777;
         }
 
         .btn-major { background: #fff; color: #333; }
         
         .btn-sharp { 
-            background: #222; color: #fb0; font-size: 10px;
-            width: 9vw; height: 9vw; max-width: 50px; max-height: 50px;
+            background: #333; color: #fb0; font-size: 11px;
+            width: 11vw; height: 11vw; max-width: 50px; max-height: 50px;
             border-radius: 50%; box-shadow: 0 4px #000;
-            left: 50%; /* Center di celah */
+            position: relative; left: 55%; 
         }
 
-        /* VISUAL FEEDBACK: INSTAN TANPA DELAY */
+        /* Nyala Hijau Toska saat disentuh */
         .active { 
             background: #0fc !important; 
-            color: #000 !important; 
+            color: #111 !important; 
             transform: translateY(4px); 
             box-shadow: none !important; 
         }
+
+        #loading-msg { color: #0fc; font-size: 14px; font-weight: bold; min-width: 60px; }
+        select { padding: 8px; border-radius: 8px; background: #444; color: white; border: 1px solid #666; font-size: 14px; }
     </style>
 </head>
 <body>
+
+    <div class="controls">
+        <select id="inst-select" onchange="loadInstrument()">
+            <option value="piano">Piano</option>
+            <option value="violin">Violin</option>
+            <option value="flute">Flute</option>
+            <option value="marimba">Marimba</option>
+            <option value="kalimba">Kalimba</option>
+            <option value="guitar">Guitar</option>
+            <option value="musicbox">Music Box</option>
+            <option value="pipa">Pipa</option>
+            <option value="erhu">Erhu</option>
+            <option value="guzheng">Guzheng</option>
+            <option value="koto">Koto</option>
+        </select>
+        <span id="loading-msg">...</span>
+    </div>
 
     <div id="piano-container"></div>
 
     <script>
         let sampler;
-        // Reverb dibuat 'wet' kecil saja biar beban prosesor iPad enteng
-        const reverb = new Tone.Reverb({ decay: 1.5, wet: 0.1 }).toDestination();
+        // Reverb disetel ringan (wet 0.15) agar tidak membebani suara saat main cepat
+        const reverb = new Tone.Reverb({ decay: 2, wet: 0.15 }).toDestination();
+        const filter = new Tone.Filter(8000, "lowpass").connect(reverb);
 
-        const instrumentLinks = { piano: "piano-c3.mp3" }; // Contoh piano saja
+        const instrumentLinks = {
+            piano: "piano-c3.mp3", kalimba: "kalimba-c3.mp3",
+            violin: "violin-c3.mp3", flute: "flute-c3.mp3", 
+            marimba: "marimba-c3.mp3", guitar: "guitar-c3.mp3",
+            musicbox: "musicbox-c3.mp3", pipa: "pipa-c3.mp3",
+            erhu: "erhu-c3.mp3", guzheng: "guzheng-c3.mp3", koto: "koto-c3.mp3"
+        };
 
-        async function init() {
+        async function loadInstrument() {
+            const selected = document.getElementById('inst-select').value;
+            const msg = document.getElementById('loading-msg');
+            msg.innerText = "WAIT";
+            
+            if(sampler) sampler.dispose();
+            
             sampler = new Tone.Sampler({
-                urls: { "C3": "piano-c3.mp3" },
-                release: 1,
+                urls: { "C3": instrumentLinks[selected] },
+                polyphony: 32, // Stabil untuk 10 jari + sustain
+                release: 2,  // Suara ekor 
                 baseUrl: "./",
-                onload: () => { console.log("Siap!"); }
-            }).connect(reverb);
+                onload: () => { msg.innerText = "READY"; }
+            }).connect(filter);
+            sampler.volume.value = 3;
         }
-        init();
 
+        loadInstrument();
+
+        // Fungsi Play & Stop (Hanya Touch)
         function handleStart(note, el, e) {
-            e.preventDefault(); // Stop browser dari 'mikir' ini mau scroll atau klik
+            e.preventDefault(); 
             if (Tone.context.state !== 'running') Tone.start();
             if (sampler && sampler.loaded) {
                 sampler.triggerAttack(note);
@@ -93,9 +136,9 @@
             }
         }
 
-        // Pembuatan Piano
         const container = document.getElementById('piano-container');
         const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
+        const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
         const hasSharp = [true, true, false, true, true, true, false, false];
 
         for (let row = 0; row < 4; row++) {
@@ -111,28 +154,25 @@
                 const currentOct = (i === 7) ? oct + 1 : oct;
                 const mNote = n + currentOct;
 
-                // Major
+                // Major Key
                 const mSlot = document.createElement('div');
                 mSlot.className = 'key-slot';
                 const mb = document.createElement('button');
                 mb.className = 'btn-key btn-major';
-                mb.innerText = i + 1;
-                
-                // PAKE ADDEVENTLISTENER AGAR BERSIH
+                mb.innerText = labels[i];
                 mb.addEventListener('touchstart', (e) => handleStart(mNote, mb, e));
                 mb.addEventListener('touchend', (e) => handleEnd(mNote, mb, e));
-                
                 mSlot.appendChild(mb);
                 majorRow.appendChild(mSlot);
 
-                // Sharp
+                // Sharp Key
                 const sSlot = document.createElement('div');
                 sSlot.className = 'key-slot';
                 if (hasSharp[i]) {
                     const sNote = n + "#" + currentOct;
                     const sb = document.createElement('button');
                     sb.className = 'btn-key btn-sharp';
-                    sb.innerText = (i + 1) + "#";
+                    sb.innerText = labels[i] + "#";
                     sb.addEventListener('touchstart', (e) => handleStart(sNote, sb, e));
                     sb.addEventListener('touchend', (e) => handleEnd(sNote, sb, e));
                     sSlot.appendChild(sb);

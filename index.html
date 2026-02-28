@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Piano 4-Octave Keyboard Sync</title>
+    <title>Piano 4-Octave Fix Keyboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box;
@@ -35,7 +35,6 @@
             box-shadow: 0 3px #000; border-radius: 50%; border: none;
             position: relative; left: 55%; 
         }
-        /* EFEK NYALA */
         .active { background: #0fc !important; color: #111 !important; transform: translateY(3px); box-shadow: none !important; }
         #loading-msg { color: #0fc; font-size: 12px; margin-left: 8px; }
     </style>
@@ -63,7 +62,9 @@
 
     <script>
         let sampler;
+        // Reverb langsung ke Destination (Speaker)
         const reverb = new Tone.Reverb({ decay: 2.5, wet: 0.2 }).toDestination();
+        // Filter langsung ke Reverb (Chorus dihapus agar tidak error)
         const filter = new Tone.Filter(8000, "lowpass").connect(reverb);
 
         const instrumentLinks = {
@@ -125,12 +126,11 @@
                 const currentOct = (i === 7) ? oct + 1 : oct;
                 const mNote = n + currentOct;
 
-                // Major Key
                 const mSlot = document.createElement('div');
                 mSlot.className = 'key-slot';
                 const mb = document.createElement('button');
                 mb.className = 'btn-key btn-major';
-                mb.id = "key-" + mNote; // KASIH ID BIAR BISA DIPANGGIL KEYBOARD
+                mb.id = "key-" + mNote; 
                 mb.innerText = labels[i];
                 mb.onmousedown = () => play(mNote, mb);
                 mb.onmouseup = mb.onmouseleave = () => stop(mNote, mb);
@@ -139,14 +139,13 @@
                 mSlot.appendChild(mb);
                 majorRow.appendChild(mSlot);
 
-                // Sharp Key
                 const sSlot = document.createElement('div');
                 sSlot.className = 'key-slot';
                 if (hasSharp[i]) {
                     const sNote = n + "#" + currentOct;
                     const sb = document.createElement('button');
                     sb.className = 'btn-key btn-sharp';
-                    sb.id = "key-" + sNote; // KASIH ID JUGA
+                    sb.id = "key-" + sNote;
                     sb.innerText = labels[i] + "#";
                     sb.onmousedown = () => play(sNote, sb);
                     sb.onmouseup = sb.onmouseleave = () => stop(sNote, sb);
@@ -161,7 +160,6 @@
             container.appendChild(octaveGroup);
         }
 
-        // --- KONTROL KEYBOARD PC DENGAN SYNC VISUAL ---
         const keyMap = {
             "z": "C2", "s": "C#2", "x": "D2", "d": "D#2", "c": "E2", "v": "F2", "g": "F#2", "b": "G2", "h": "G#2", "n": "A2", "j": "A#2", "m": "B2",
             "a": "C3", "w": "C#3", "s": "D3", "e": "D#3", "d": "E3", "f": "F3", "t": "F#3", "g": "G3", "y": "G#3", "h": "A3", "u": "A#3", "j": "B3", "k": "C4",
@@ -174,8 +172,8 @@
             const note = keyMap[key];
             if (note && !activeKeys.has(key)) {
                 activeKeys.add(key);
-                const el = document.getElementById("key-" + note); // CARI TOMBOLNYA
-                play(note, el); // NYALAKAN SUARA + WARNA
+                const el = document.getElementById("key-" + note);
+                play(note, el);
             }
         });
 
@@ -184,4 +182,10 @@
             const note = keyMap[key];
             if (note) {
                 activeKeys.delete(key);
-                const el = document
+                const el = document.getElementById("key-" + note);
+                stop(note, el);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -24,18 +24,15 @@
         /* Baris Sharp lebih rapat ke bawah */
         .sharp-row { 
             display: flex; 
-            justify-content: flex-start; /* UBAH INI dari center ke flex-start */
-            margin-bottom: -15px; /* Sedikit lebih rapat agar enak dipencet */
-            padding-left: 8.5vw; /* Jarak awal agar #1 pas di sela 1 & 2 */
+            justify-content: center; 
+            margin-bottom: -15px; 
             z-index: 10; 
             width: 100%;
-            max-width: 450px; /* Sesuaikan dengan lebar piano kamu */
         }
         .major-row { 
             display: flex; 
-            justify-content: flex-start; /* Samakan agar patokan kirinya sinkron */
+            justify-content: center; 
             width: 100%;
-            max-width: 450px;
         }
 
         /* Key Slot dengan jarak (Gap) untuk mencegah delay sentuhan */
@@ -56,14 +53,19 @@
 
         .btn-major { background: #fff; color: #333; }
         
+        /* Tombol Sharp digeser manual agar "nyelip" sempurna */
         .btn-sharp { 
-             background: #333; color: #fb0; font-size: 11px; 
+            background: #333; color: #fb0; font-size: 11px; 
             width: 8.5vw; height: 8.5vw; max-width: 38px; max-height: 38px;
             box-shadow: 0 3px #000; 
             border-radius: 50%;
             border: none;
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
+            
+            /* GESER MANUAL: Ini yang bikin dia pas di celah */
+            position: relative;
+            left: 50%; 
         }
 
         .active { background: #0fc !important; color: #111 !important; transform: translateY(3px); box-shadow: none !important; }
@@ -154,10 +156,9 @@
             majorRow.className = 'major-row';
 
             notes.forEach((n, i) => {
-                // Logika Oktaf: Khusus untuk nada "Do" terakhir (i), dia naik satu oktaf
                 const currentOct = (i === 7) ? oct + 1 : oct;
                 
-                // Major Key
+                // 1. Major Key (Baris Putih)
                 const mSlot = document.createElement('div');
                 mSlot.className = 'key-slot';
                 const mb = document.createElement('button');
@@ -174,9 +175,11 @@
                 mSlot.appendChild(mb);
                 majorRow.appendChild(mSlot);
 
-                // Sharp Key
+                // 2. Sharp Key (Baris Hitam)
+                // Kita buat slot kosong DULU, baru isi tombol jika hasSharp[i] benar
                 const sSlot = document.createElement('div');
                 sSlot.className = 'key-slot';
+                
                 if (hasSharp[i]) {
                     const sb = document.createElement('button');
                     sb.className = 'btn-key btn-sharp';
@@ -199,6 +202,7 @@
     </script>
 </body>
 </html>
+
 
 
 

@@ -27,59 +27,55 @@
             justify-content: center; align-items: center; gap: 16px; padding: 10px;
         }
         .octave-group { display: flex; flex-direction: column; align-items: center; position: relative; }
-        
         .sharp-row { 
             display: flex; justify-content: center; margin-bottom: -12px; 
             z-index: 20; width: 100%; position: relative;
         }
         .major-row { display: flex; justify-content: center; width: 100%; z-index: 10; position: relative; }
-
         .key-slot { width: 12vw; max-width: 75px; display: flex; justify-content: center; margin: 0 10px; }
-
         .btn-key { 
             width: 11vw; height: 11vw; max-width: 70px; max-height: 70px;
             border-radius: 20%; border: none; font-weight: bold; font-size: 16px;
             display: flex; align-items: center; justify-content: center;
             transition: none; box-shadow: 0 4px #777;
+            background: #fff; color: #333;
         }
-
-        .btn-major { background: #fff; color: #333; }
-        
         .btn-sharp { 
             background: #333; color: #fb0; font-size: 11px;
             width: 11vw; height: 11vw; max-width: 50px; max-height: 50px;
             border-radius: 50%; box-shadow: 0 4px #000;
             position: relative; left: 55%; 
         }
-
-        /* Nyala Hijau Toska saat disentuh */
         .active { 
             background: #0fc !important; 
             color: #111 !important; 
             transform: translateY(4px); 
             box-shadow: none !important; 
         }
-
         #loading-msg { color: #0fc; font-size: 14px; font-weight: bold; min-width: 60px; }
+        #eco-label { font-size: 10px; color: #ffab00; display: block; margin-top: 2px; }
         select { padding: 8px; border-radius: 8px; background: #444; color: white; border: 1px solid #666; font-size: 14px; }
     </style>
 </head>
 <body>
 
     <div class="controls">
-        <select id="inst-select" onchange="loadInstrument()">
-            <option value="piano">Piano</option>
-            <option value="violin">Violin</option>
-            <option value="flute">Flute</option>
-            <option value="marimba">Marimba</option>
-            <option value="kalimba">Kalimba</option>
-            <option value="guitar">Guitar</option>
-            <option value="musicbox">Music Box</option>
-            <option value="pipa">Pipa</option>
-            <option value="erhu">Erhu</option>
-            <option value="guzheng">Guzheng</option>
-            <option value="koto">Koto</option>
-        </select>
+        <div>
+            <select id="inst-select" onchange="loadInstrument()">
+                <option value="piano">Piano</option>
+                <option value="violin">Violin</option>
+                <option value="flute">Flute</option>
+                <option value="marimba">Marimba</option>
+                <option value="kalimba">Kalimba</option>
+                <option value="guitar">Guitar</option>
+                <option value="musicbox">Music Box</option>
+                <option value="pipa">Pipa</option>
+                <option value="erhu">Erhu</option>
+                <option value="guzheng">Guzheng</option>
+                <option value="koto">Koto</option>
+            </select>
+            <span id="eco-label">HIGH QUALITY</span>
+        </div>
         <span id="loading-msg">...</span>
     </div>
 
@@ -87,7 +83,9 @@
 
     <script>
         let sampler;
-        // Reverb disetel ringan (wet 0.15) agar tidak membebani suara saat main cepat
+        let isEcoMode = false;
+        
+        // Setup Efek (Reverb & Filter)
         const reverb = new Tone.Reverb({ decay: 2, wet: 0.15 }).toDestination();
         const filter = new Tone.Filter(8000, "lowpass").connect(reverb);
 
@@ -99,6 +97,17 @@
             erhu: "erhu-c3.mp3", guzheng: "guzheng-c3.mp3", koto: "koto-c3.mp3"
         };
 
+        function activateEcoMode() {
+            if (isEcoMode) return;
+            isEcoMode = true;
+            const label = document.getElementById('eco-label');
+            if(label) {
+                label.innerText = "ECO MODE (LOW CPU)";
+                label.style.color = "#ff4444";
+            }
+            loadInstrument();
+        }
+
         async function loadInstrument() {
             const selected = document.getElementById('inst-select').value;
             const msg = document.getElementById('loading-msg');
@@ -108,17 +117,31 @@
             
             sampler = new Tone.Sampler({
                 urls: { "C3": instrumentLinks[selected] },
-                polyphony: 32, // Stabil untuk 10 jari + sustain
-                release: 2,  // Suara ekor 
+                polyphony: isEcoMode ? 16 : 32,
+                release: isEcoMode ? 0.8 : 2, 
                 baseUrl: "./",
                 onload: () => { msg.innerText = "READY"; }
-            }).connect(filter);
-            sampler.volume.value = 3;
+            });
+
+            // Routing suara: Jika EcoMode, bypass filter/reverb langsung ke output
+            if (isEcoMode) {
+                sampler.toDestination();
+            } else {
+                sampler.connect(filter);
+            }
+            
+            sampler.volume.value = 0; // Volume 0dB (Ambang batas jernih)
         }
 
-        loadInstrument();
+        // Cek beban CPU setiap 5 detik
+        setInterval(() => {
+            if (!isEcoMode) {
+                if (Tone.context.lookAhead > 0.2) { 
+                    activateEcoMode();
+                }
+            }
+        }, 5000);
 
-        // Fungsi Play & Stop (Hanya Touch)
         function handleStart(note, el, e) {
             e.preventDefault(); 
             if (Tone.context.state !== 'running') Tone.start();
@@ -136,6 +159,7 @@
             }
         }
 
+        // Render Keyboard
         const container = document.getElementById('piano-container');
         const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
         const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
@@ -154,7 +178,6 @@
                 const currentOct = (i === 7) ? oct + 1 : oct;
                 const mNote = n + currentOct;
 
-                // Major Key
                 const mSlot = document.createElement('div');
                 mSlot.className = 'key-slot';
                 const mb = document.createElement('button');
@@ -165,7 +188,6 @@
                 mSlot.appendChild(mb);
                 majorRow.appendChild(mSlot);
 
-                // Sharp Key
                 const sSlot = document.createElement('div');
                 sSlot.className = 'key-slot';
                 if (hasSharp[i]) {
@@ -183,9 +205,8 @@
             octaveGroup.appendChild(majorRow);
             container.appendChild(octaveGroup);
         }
+
+        loadInstrument();
     </script>
 </body>
 </html>
-
-
-

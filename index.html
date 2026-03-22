@@ -82,135 +82,84 @@
     <div id="piano-container"></div>
 
     <script>
-        let sampler;
-        let isEcoMode = false;
+        // 1. SETTING PRIORITAS TERTINGGI (Penting!)
+    Tone.context.latencyHint = "fastest"; 
+    Tone.context.lookAhead = 0;
+
+    let sampler;
+    let isEcoMode = false;
+
+    // Kita matikan Reverb/Filter dulu untuk tes kecepatan murni
+    // Jika ini sudah lancar, baru tambahkan efek satu-satu
+    const output = Tone.getDestination(); 
+
+    const instrumentLinks = {
+        piano: "piano-c3.mp3", kalimba: "kalimba-c3.mp3",
+        violin: "violin-c3.mp3", flute: "flute-c3.mp3", 
+        marimba: "marimba-c3.mp3", guitar: "guitar-c3.mp3",
+        musicbox: "musicbox-c3.mp3", pipa: "pipa-c3.mp3",
+        erhu: "erhu-c3.mp3", guzheng: "guzheng-c3.mp3", koto: "koto-c3.mp3"
+    };
+
+    async function loadInstrument() {
+        const selected = document.getElementById('inst-select').value;
+        const msg = document.getElementById('loading-msg');
+        msg.innerText = "WAIT";
         
-        // attempt supaya ga macet kalo main cepet
-        Tone.context.latencyHint = "fastest"; 
-        Tone.context.lookAhead = 0;
+        if(sampler) sampler.dispose();
         
-        // Setup Efek (Reverb & Filter)
-        const reverb = new Tone.Reverb({ decay: 2, wet: 0.15 }).toDestination();
-        const filter = new Tone.Filter(8000, "lowpass").connect(reverb);
-
-        const instrumentLinks = {
-            piano: "piano-c3.mp3", kalimba: "kalimba-c3.mp3",
-            violin: "violin-c3.mp3", flute: "flute-c3.mp3", 
-            marimba: "marimba-c3.mp3", guitar: "guitar-c3.mp3",
-            musicbox: "musicbox-c3.mp3", pipa: "pipa-c3.mp3",
-            erhu: "erhu-c3.mp3", guzheng: "guzheng-c3.mp3", koto: "koto-c3.mp3"
-        };
-
-        function activateEcoMode() {
-            if (isEcoMode) return;
-            isEcoMode = true;
-            const label = document.getElementById('eco-label');
-            if(label) {
-                label.innerText = "ECO MODE (LOW CPU)";
-                label.style.color = "#ff4444";
+        sampler = new Tone.Sampler({
+            urls: { "C3": instrumentLinks[selected] },
+            // Menaikkan polyphony agar tidak ada nada yang "dibuang" saat main cepat
+            polyphony: 64, 
+            attack: 0,
+            release: 0.5,
+            baseUrl: "./",
+            onload: () => { 
+                msg.innerText = "READY";
+                warmUpBuffer(); // "Pemanasan" memori
             }
-            loadInstrument();
+        }).connect(output);
+    }
+
+    // Fungsi Pemanasan: Memaksa browser memuat suara ke RAM aktif
+    function warmUpBuffer() {
+        const dummyNotes = ["C3", "E3", "G3"];
+        dummyNotes.forEach(note => {
+            sampler.triggerAttackRelease(note, 0.01, undefined, 0); // Bunyi volume 0
+        });
+        console.log("Audio Buffer Warmed Up");
+    }
+
+    function handleStart(note, el, e) {
+        if (e.cancelable) e.preventDefault();
+        
+        // Memastikan AudioContext resume secepat kilat
+        if (Tone.context.state !== 'running') {
+            Tone.context.resume();
         }
 
-        async function loadInstrument() {
-            const selected = document.getElementById('inst-select').value;
-            const msg = document.getElementById('loading-msg');
-            msg.innerText = "WAIT";
-            
-            if(sampler) sampler.dispose();
-            
-            sampler = new Tone.Sampler({
-                urls: { "C3": instrumentLinks[selected] },
-                polyphony: isEcoMode ? 16 : 32,
-                release: isEcoMode ? 0.8 : 2, 
-                baseUrl: "./",
-                onload: () => { msg.innerText = "READY"; }
-            });
-
-            // Routing suara: Jika EcoMode, bypass filter/reverb langsung ke output
-            if (isEcoMode) {
-                sampler.toDestination();
-            } else {
-                sampler.connect(filter);
-            }
-            
-            sampler.volume.value = 0; // Volume 0dB (Ambang batas jernih)
+        if (sampler && sampler.loaded) {
+            // Gunakan Tone.now() untuk sinkronisasi hardware clock paling presisi
+            const now = Tone.now();
+            sampler.triggerAttack(note, now);
+            el.classList.add('active');
         }
+    }
 
-        // Cek beban CPU setiap 5 detik-matiin dulu bentar
-        //setInterval(() => {
-           // if (!isEcoMode) {
-             //   if (Tone.context.lookAhead > 0.2) { 
-               //     activateEcoMode();
-                //}
-            //}
-        //}, 5000);
-
-        function handleStart(note, el, e) {
-            e.preventDefault(); 
-            if (Tone.context.state !== 'running') Tone.start();
-            if (sampler && sampler.loaded) {
-                sampler.triggerAttack(note, Tone.immediate());
-                el.classList.add('active');
-            }
+    function handleEnd(note, el, e) {
+        if (e.cancelable) e.preventDefault();
+        if (sampler && sampler.loaded) {
+            // Gunakan immediate release agar buffer cepat kosong kembali
+            sampler.triggerRelease(note, Tone.immediate());
+            el.classList.remove('active');
         }
+    }
 
-        function handleEnd(note, el, e) {
-            e.preventDefault();
-            if (sampler && sampler.loaded) {
-                sampler.triggerRelease(note, "+0.05");
-                el.classList.remove('active');
-            }
-        }
-
-        // Render Keyboard
-        const container = document.getElementById('piano-container');
-        const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
-        const labels = ["1", "2", "3", "4", "5", "6", "7", "i"];
-        const hasSharp = [true, true, false, true, true, true, false, false];
-
-        for (let row = 0; row < 4; row++) {
-            const oct = row + 1;
-            const octaveGroup = document.createElement('div');
-            octaveGroup.className = 'octave-group';
-            const sharpRow = document.createElement('div');
-            sharpRow.className = 'sharp-row';
-            const majorRow = document.createElement('div');
-            majorRow.className = 'major-row';
-
-            notes.forEach((n, i) => {
-                const currentOct = (i === 7) ? oct + 1 : oct;
-                const mNote = n + currentOct;
-
-                const mSlot = document.createElement('div');
-                mSlot.className = 'key-slot';
-                const mb = document.createElement('button');
-                mb.className = 'btn-key btn-major';
-                mb.innerText = labels[i];
-                mb.addEventListener('touchstart', (e) => handleStart(mNote, mb, e));
-                mb.addEventListener('touchend', (e) => handleEnd(mNote, mb, e));
-                mSlot.appendChild(mb);
-                majorRow.appendChild(mSlot);
-
-                const sSlot = document.createElement('div');
-                sSlot.className = 'key-slot';
-                if (hasSharp[i]) {
-                    const sNote = n + "#" + currentOct;
-                    const sb = document.createElement('button');
-                    sb.className = 'btn-key btn-sharp';
-                    sb.innerText = labels[i] + "#";
-                    sb.addEventListener('touchstart', (e) => handleStart(sNote, sb, e));
-                    sb.addEventListener('touchend', (e) => handleEnd(sNote, sb, e));
-                    sSlot.appendChild(sb);
-                }
-                sharpRow.appendChild(sSlot);
-            });
-            octaveGroup.appendChild(sharpRow);
-            octaveGroup.appendChild(majorRow);
-            container.appendChild(octaveGroup);
-        }
-
-        loadInstrument();
+    // Render Keyboard (Tetap sama seperti sebelumnya)
+    // ... (Gunakan kode render keyboard kamu yang terakhir) ...
+    
+    loadInstrument();
     </script>
 </body>
 </html>
